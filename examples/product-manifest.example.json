@@ -1,0 +1,24 @@
+{
+  "manifestVersion": 1,
+  "product": {
+    "sku": "MEMBER-GUIDE-001",
+    "name": "成员使用指南",
+    "description": "购买后直接获取指南入口。",
+    "coverStyle": "indigo",
+    "publication": "draft"
+  },
+  "sources": ["https://example.com/member-guide"],
+  "delivery": {
+    "type": "direct_delivery",
+    "config": {
+      "resources": [{ "label": "指南入口", "url": "https://example.com/guide" }]
+    },
+    "instructions": ["兑换成功后打开指南入口。"]
+  },
+  "codes": {
+    "mode": "generate",
+    "count": 10,
+    "length": 12,
+    "prefix": "GUIDE-"
+  }
+}

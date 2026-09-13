@@ -1,0 +1,32 @@
+{
+  "name": "answers-beyond-agent-kit",
+  "version": "1.0.0",
+  "description": "AI-native Skill, MCP and CLI kit for Answers Beyond members.",
+  "license": "MIT",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "answers-beyond-agent-kit": "bin/answers-beyond-agent-kit.cjs"
+  },
+  "files": [
+    "agent",
+    "bin",
+    "cli",
+    "examples",
+    "lib",
+    "mcp",
+    "schemas",
+    "skills",
+    "AGENTS.md",
+    "README.md",
+    "SECURITY.md",
+    "LICENSE",
+    "install.ps1"
+  ],
+  "scripts": {
+    "test": "node --test tests/*.test.cjs",
+    "verify": "npm test && npm pack --dry-run"
+  }
+}

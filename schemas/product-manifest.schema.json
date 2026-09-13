@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ent.xince.work/schemas/product-manifest-v1.json",
+  "title": "Answers Beyond Product Manifest v1",
+  "type": "object",
+  "required": ["manifestVersion", "product", "delivery"],
+  "properties": {
+    "manifestVersion": { "const": 1 },
+    "product": {
+      "type": "object",
+      "required": ["sku", "name"],
+      "properties": {
+        "sku": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "description": { "type": "string", "maxLength": 1200 },
+        "coverStyle": { "type": "string", "maxLength": 30 },
+        "publication": { "enum": ["draft", "active"], "default": "draft" }
+      },
+      "additionalProperties": false
+    },
+    "sources": {
+      "type": "array",
+      "maxItems": 20,
+      "items": { "type": "string", "format": "uri", "pattern": "^https?://" }
+    },
+    "delivery": {
+      "type": "object",
+      "required": ["type", "config"],
+      "properties": {
+        "type": { "enum": ["manual_review", "direct_delivery", "account_activation"] },
+        "config": { "type": "object" },
+        "instructions": { "type": "array", "maxItems": 30, "items": { "type": "string", "maxLength": 500 } }
+      }
+    },
+    "codes": {
+      "type": "object",
+      "required": ["mode"],
+      "properties": {
+        "mode": { "enum": ["none", "generate", "import"] },
+        "count": { "type": "integer", "minimum": 1, "maximum": 1000 },
+        "length": { "type": "integer", "minimum": 8, "maximum": 32 },
+        "prefix": { "type": "string", "maxLength": 10 },
+        "file": { "type": "string" },
+        "batchName": { "type": "string", "maxLength": 120 }
+      }
+    }
+  }
+}
