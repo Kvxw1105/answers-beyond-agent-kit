@@ -6,7 +6,7 @@ const path = require('node:path');
 const { request, writeRequest } = require('../lib/client.cjs');
 const { toProductInput } = require('../agent/product-manifest.cjs');
 const { createPrivateFiles, generateCodes } = require('../agent/local-codes.cjs');
-const { normalizePurchaseCodes, reviewActionPath, sanitizeReviewPayload } = require('../agent/reviews.cjs');
+const { normalizePurchaseCodesFromText, reviewActionPath, sanitizeReviewPayload } = require('../agent/reviews.cjs');
 
 function parser(argv) {
   return {
@@ -33,7 +33,7 @@ async function run(argv = process.argv.slice(2), dependencies = { request, write
   if (command === 'reviews' && resource === 'match') {
     const privateRoot = process.env.ABEC_PRIVATE_DIR || path.join(require('node:os').homedir(), '.answers-beyond', 'private');
     const files = createPrivateFiles(privateRoot);
-    const codes = normalizePurchaseCodes(files.read(args.value('--file')));
+    const codes = normalizePurchaseCodesFromText(files.read(args.value('--file')));
     const result = await dependencies.request('/api/v1/reviews/match', {
       method: 'POST',
       body: JSON.stringify({ codes }),

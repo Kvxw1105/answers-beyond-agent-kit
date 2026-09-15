@@ -65,7 +65,7 @@ npx --yes github:Kvxw1105/answers-beyond-agent-kit#v1.1.0 doctor --check
 IMA 知识库申请里附的是“答案之外”现有的长卡密，不是内部六位审核码。把截图发给已配置的 Agent 后，它可以：
 
 1. 从截图识别长卡密，过滤日期、手机号和订单号；
-2. 调用 `abec_match_reviews`，由服务端按哈希验真并判断未兑换、可处理、重复、已锁定或异常；
+2. 将截图 OCR 或复制文字放入 `ABEC_PRIVATE_DIR` 下的短期文件，调用 `abec_match_reviews({ codesFile: "..." })`，由服务端按哈希验真并判断未兑换、可处理、重复、已锁定或异常；MCP 不接受原始 `codes[]`；
 3. 只展示脱敏尾号，不在工具返回中回显完整卡密；
 4. 经你显式确认后锁定记录；
 5. 等你在 IMA GUI 人工同意后，再经第二次显式确认把本站权益标记完成并回读验证。

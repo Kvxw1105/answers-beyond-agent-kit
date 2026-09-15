@@ -45,7 +45,7 @@ Raw card codes must stay in files beneath `ABEC_PRIVATE_DIR`. Do not print codes
 
 IMA 申请凭证是现有长卡密；服务端用哈希核验，不能把它改成六位码或重新导入库存。
 
-When the user sends an IMA application screenshot, extract only long purchase-card candidates containing both letters and digits. Ignore dates, phone numbers, order numbers, and the internal six-digit review code. Call `abec_match_reviews` immediately and report only masked tails plus the server verdict.
+When the user sends an IMA application screenshot or copied text, first place the short-lived OCR/text evidence under `ABEC_PRIVATE_DIR` (one candidate per line is fine; surrounding OCR text is also accepted), then call `abec_match_reviews` with `{ codesFile: "..." }`. Never pass a raw `codes` array to the MCP tool. Extract only long purchase-card candidates containing both letters and digits. Ignore dates, phone numbers, order numbers, and the internal six-digit review code. Report only masked tails plus the server verdict.
 
 The server verifies the existing long card by secure hash; do not redesign card generation or import the proof as new inventory. Reads and matching may run immediately. Locking, approving, rejecting, marking abnormal, and unlocking are writes: call `abec_review_action_preview`, show the exact action, wait for explicit confirmation, then pass its fresh receipt to `abec_confirm_operation` and read the review queue back.
 

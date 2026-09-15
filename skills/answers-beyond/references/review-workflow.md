@@ -13,8 +13,8 @@ Use this workflow when an IMA knowledge-base application contains a purchase car
 ## Sequence
 
 1. Run `abec_whoami`; require `reviews:read` for matching and `reviews:write` for state changes.
-2. Inspect the screenshot and extract candidates that contain both letters and digits. Ignore dates, phone numbers, prices, order numbers, and six-digit internal review codes.
-3. Call `abec_match_reviews` with only the current application candidates.
+2. Inspect the screenshot or copied text and write the short-lived evidence under `ABEC_PRIVATE_DIR`. Candidates may be one per line, or the file may contain surrounding OCR text. Extract candidates that contain both letters and digits. Ignore dates, phone numbers, prices, order numbers, and six-digit internal review codes.
+3. Call `abec_match_reviews` with `{ codesFile: "..." }`; the MCP tool intentionally rejects a raw `codes` array so the full proof does not enter tool arguments.
 4. Report each masked tail and one server verdict:
    - `actionable`: valid manual-review card with an unfinished claim.
    - `not_redeemed`: card exists but the buyer has not claimed it in Answers Beyond.

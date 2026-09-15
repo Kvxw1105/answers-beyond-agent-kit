@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const client = require('../lib/client.cjs');
 const { createPrivateFiles, generateCodes } = require('../agent/local-codes.cjs');
-const { normalizePurchaseCodes, reviewActionPath, sanitizeReviewPayload } = require('../agent/reviews.cjs');
+const { normalizePurchaseCodesFromText, reviewActionPath, sanitizeReviewPayload } = require('../agent/reviews.cjs');
 const { version } = require('../package.json');
 
 const tools = [
@@ -15,7 +15,7 @@ const tools = [
   { name: 'abec_get_product', description: '读取当前成员有权查看的指定商品。', inputSchema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } },
   { name: 'abec_list_codes', description: '读取当前成员有权查看的脱敏卡密列表。', inputSchema: { type: 'object', properties: { productId: { type: 'string' } } } },
   { name: 'abec_list_reviews', description: '读取当前成员有权处理的人工审核队列；不返回完整购买卡密或 claim token。', inputSchema: { type: 'object', properties: { limit: { type: 'integer', minimum: 1, maximum: 100 } } } },
-  { name: 'abec_match_reviews', description: '把当前 IMA 申请中的长卡密提交给服务端做哈希验真与防重放；不要在回复中复述完整卡密。', inputSchema: { type: 'object', properties: { codes: { type: 'array', minItems: 1, maxItems: 50, items: { type: 'string', minLength: 8, maxLength: 128 } } }, required: ['codes'] } },
+  { name: 'abec_match_reviews', description: '从 ABEC_PRIVATE_DIR 内的 IMA 申请文本/卡密文件读取长卡密，提交服务端做哈希验真与防重放；不要把完整卡密放进 MCP 参数或回复。', inputSchema: { type: 'object', properties: { codesFile: { type: 'string', description: 'ABEC_PRIVATE_DIR 内的短期私有文本文件；可包含截图 OCR 文字或每行一个卡密。' } }, required: ['codesFile'], additionalProperties: false } },
   { name: 'abec_review_action_preview', description: '预览锁定、通过、拒绝、异常或解锁审核记录；只生成 receipt，不执行写入。', inputSchema: { type: 'object', properties: { reviewCode: { type: 'string', pattern: '^\\d{6}$' }, action: { type: 'string', enum: ['lock', 'approve', 'reject', 'abnormal', 'unlock'] } }, required: ['reviewCode', 'action'] } },
   { name: 'abec_create_product_preview', description: '预览创建商品，不写入。', inputSchema: { type: 'object', properties: { input: { type: 'object' } }, required: ['input'] } },
   { name: 'abec_update_product_preview', description: '预览更新商品，不写入。', inputSchema: { type: 'object', properties: { id: { type: 'string' }, input: { type: 'object' } }, required: ['id', 'input'] } },
@@ -48,7 +48,9 @@ function createMcp({ request = client.request, writeRequest = client.writeReques
       return sanitizeReviewPayload(await request(`/api/v1/reviews?limit=${limit}`));
     }
     if (name === 'abec_match_reviews') {
-      const codes = normalizePurchaseCodes(args.codes);
+      if (!args.codesFile) throw new Error('MCP 审核匹配必须指定 codesFile；完整卡密不得进入 MCP tool input。');
+      const proofFile = files.resolve(args.codesFile);
+      const codes = normalizePurchaseCodesFromText(files.read(proofFile));
       const result = await request('/api/v1/reviews/match', {
         method: 'POST',
         body: JSON.stringify({ codes }),

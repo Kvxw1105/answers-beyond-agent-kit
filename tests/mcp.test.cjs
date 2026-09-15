@@ -14,13 +14,20 @@ test('MCP exposes the complete member tool surface', () => {
     'abec_create_product_preview', 'abec_update_product_preview',
     'abec_generate_codes_preview', 'abec_import_codes_preview', 'abec_confirm_operation',
   ]);
+  const matchTool = tools.find((tool) => tool.name === 'abec_match_reviews');
+  assert.deepEqual(matchTool.inputSchema.required, ['codesFile']);
+  assert.equal(matchTool.inputSchema.properties.codes, undefined);
 });
 
 test('MCP matches purchase-code proofs without echoing raw codes or claim tokens', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'abec-review-mcp-'));
   const purchaseCode = 'JX-QN2T6ZEYT5P8';
+  const proofFile = path.join(root, 'ima-proof.txt');
+  fs.writeFileSync(proofFile, `2026-09-15\n手机号 13800138000\nIMA 申请 ${purchaseCode}\n`, { mode: 0o600 });
   let captured;
   const { createMcp } = require('../mcp/server.cjs');
   const mcp = createMcp({
+    privateRoot: root,
     request: async (...args) => {
       captured = args;
       return { data: [{ candidateTail: 'T5P8', echoed: purchaseCode, review: { reviewCode: '482731', claimToken: 'private-claim-token' } }] };
@@ -28,7 +35,7 @@ test('MCP matches purchase-code proofs without echoing raw codes or claim tokens
     writeRequest: async () => ({}),
   });
 
-  const result = await mcp.call('abec_match_reviews', { codes: [purchaseCode] });
+  const result = await mcp.call('abec_match_reviews', { codesFile: proofFile });
   assert.equal(captured[0], '/api/v1/reviews/match');
   assert.deepEqual(JSON.parse(captured[1].body), { codes: [purchaseCode] });
   assert.doesNotMatch(JSON.stringify(result), new RegExp(purchaseCode));
@@ -81,6 +88,8 @@ test('MCP rejects raw codes in Agent input and requires private files', async ()
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'abec-mcp-safe-'));
   const { createMcp } = require('../mcp/server.cjs');
   const mcp = createMcp({ privateRoot: root, request: async () => ({}), writeRequest: async () => ({}) });
+  await assert.rejects(() => mcp.call('abec_match_reviews', { codes: ['JX-QN2T6ZEYT5P8'] }), /codesFile/);
+  await assert.rejects(() => mcp.call('abec_match_reviews', { codesFile: path.join(root, '..', 'outside.txt') }), /ABEC_PRIVATE_DIR/);
   await assert.rejects(() => mcp.call('abec_import_codes_preview', { productId: 'p1', input: { codes: ['LEAK'] } }), /codesFile/);
   await assert.rejects(() => mcp.call('abec_import_codes_preview', { productId: 'p1', codesFile: path.join(root, '..', 'outside.txt') }), /ABEC_PRIVATE_DIR/);
 });

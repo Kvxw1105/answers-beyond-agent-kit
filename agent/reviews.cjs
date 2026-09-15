@@ -18,6 +18,12 @@ function normalizePurchaseCodes(values) {
   return codes;
 }
 
+function normalizePurchaseCodesFromText(value) {
+  const text = Array.isArray(value) ? value.join('\n') : String(value || '');
+  const extracted = extractPurchaseCodes(text);
+  return normalizePurchaseCodes(extracted.length ? extracted : text.split(/\r?\n/));
+}
+
 function maskPurchaseCode(code) {
   return `•••• ${normalizePurchaseCode(code).slice(-4)}`;
 }
@@ -46,6 +52,7 @@ module.exports = {
   maskPurchaseCode,
   normalizePurchaseCode,
   normalizePurchaseCodes,
+  normalizePurchaseCodesFromText,
   reviewActionPath,
   sanitizeReviewPayload,
 };
