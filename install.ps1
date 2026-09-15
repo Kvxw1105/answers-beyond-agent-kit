@@ -20,5 +20,5 @@ if (-not $env:ABEC_API_KEY) {
   }
 }
 
-npx --yes 'github:Kvxw1105/answers-beyond-agent-kit#v1.0.0' setup --harness $Harness --api-url $ApiUrl --register
-npx --yes 'github:Kvxw1105/answers-beyond-agent-kit#v1.0.0' doctor --check
+npx --yes 'github:Kvxw1105/answers-beyond-agent-kit#v1.1.0' setup --harness $Harness --api-url $ApiUrl --register
+npx --yes 'github:Kvxw1105/answers-beyond-agent-kit#v1.1.0' doctor --check

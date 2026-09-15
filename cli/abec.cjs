@@ -6,6 +6,7 @@ const path = require('node:path');
 const { request, writeRequest } = require('../lib/client.cjs');
 const { toProductInput } = require('../agent/product-manifest.cjs');
 const { createPrivateFiles, generateCodes } = require('../agent/local-codes.cjs');
+const { normalizePurchaseCodesFromText, reviewActionPath, sanitizeReviewPayload } = require('../agent/reviews.cjs');
 
 function parser(argv) {
   return {
@@ -25,6 +26,20 @@ async function run(argv = process.argv.slice(2), dependencies = { request, write
   if (command === 'products' && resource === 'list') return dependencies.request('/api/v1/products');
   if (command === 'products' && resource === 'get' && id) return dependencies.request(`/api/v1/products/${encodeURIComponent(id)}`);
   if (command === 'codes' && resource === 'list') return dependencies.request(`/api/v1/codes${args.value('--product') ? `?productId=${encodeURIComponent(args.value('--product'))}` : ''}`);
+  if (command === 'reviews' && resource === 'list') {
+    const limit = Math.min(100, Math.max(1, Number(args.value('--limit') || 40)));
+    return sanitizeReviewPayload(await dependencies.request(`/api/v1/reviews?limit=${limit}`));
+  }
+  if (command === 'reviews' && resource === 'match') {
+    const privateRoot = process.env.ABEC_PRIVATE_DIR || path.join(require('node:os').homedir(), '.answers-beyond', 'private');
+    const files = createPrivateFiles(privateRoot);
+    const codes = normalizePurchaseCodesFromText(files.read(args.value('--file')));
+    const result = await dependencies.request('/api/v1/reviews/match', {
+      method: 'POST',
+      body: JSON.stringify({ codes }),
+    });
+    return sanitizeReviewPayload(result, codes);
+  }
 
   let endpoint;
   let method = 'POST';
@@ -48,8 +63,11 @@ async function run(argv = process.argv.slice(2), dependencies = { request, write
       fs.writeFileSync(file, `${codes.join('\n')}\n`, { encoding: 'utf8', mode: 0o600, flag: 'wx' });
     } else codes = files.read(file);
     input = { productId: args.value('--product'), codes, ...(args.value('--batch-name') ? { batchName: args.value('--batch-name') } : {}) };
+  } else if (command === 'reviews' && resource === 'action' && id && argv[3]) {
+    endpoint = reviewActionPath(id, argv[3]);
+    input = {};
   } else {
-    throw new Error('用法：abec whoami | products list|get ID|create|update | codes list|generate|import；写操作需 --receipt FILE，确认时再加 --confirm。');
+    throw new Error('用法：abec whoami | products list|get ID|create|update | codes list|generate|import | reviews list|match --file FILE|action REVIEW_CODE ACTION；写操作需 --receipt FILE，确认时再加 --confirm。');
   }
 
   const receiptFile = args.value('--receipt');
@@ -64,7 +82,8 @@ async function run(argv = process.argv.slice(2), dependencies = { request, write
   }
   const receipt = readJson(receiptPath, '--receipt');
   if (receipt.version !== 1 || receipt.path !== endpoint || receipt.method !== method || !receipt.confirmationToken || !receipt.idempotencyKey) throw new Error('receipt 无效、过期或与当前操作不匹配。');
-  return dependencies.writeRequest(endpoint, { ...input, confirmationToken: receipt.confirmationToken }, { method, idempotencyKey: receipt.idempotencyKey });
+  const result = await dependencies.writeRequest(endpoint, { ...input, confirmationToken: receipt.confirmationToken }, { method, idempotencyKey: receipt.idempotencyKey });
+  return command === 'reviews' ? sanitizeReviewPayload(result) : result;
 }
 
 if (require.main === module) {

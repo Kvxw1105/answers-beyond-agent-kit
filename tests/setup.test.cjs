@@ -36,3 +36,25 @@ test('setup is idempotent and dry-run does not write', () => {
   const second = install({ harness: 'codex', home, skipRegister: true });
   assert.equal(first.skillPath, second.skillPath);
 });
+
+test('setup dry-run never attempts MCP registration', async () => {
+  const { main } = require('../bin/answers-beyond-agent-kit.cjs');
+  const logs = [];
+  let registrationCalls = 0;
+
+  await main(
+    ['setup', '--harness', 'generic', '--register', '--dry-run'],
+    {
+      log: (value) => logs.push(value),
+      registerMcp: () => {
+        registrationCalls += 1;
+        return { attempted: true, ok: true };
+      },
+    },
+  );
+
+  assert.equal(registrationCalls, 0);
+  assert.equal(logs.length, 1);
+  const result = JSON.parse(logs[0]);
+  assert.deepEqual(result.registration, { attempted: false, reason: 'dry-run' });
+});

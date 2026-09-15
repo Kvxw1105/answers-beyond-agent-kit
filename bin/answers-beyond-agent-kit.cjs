@@ -12,7 +12,7 @@ const { run: runAbec } = require('../cli/abec.cjs');
 const HELP = `Answers Beyond Agent Kit
 
 Usage:
-  answers-beyond-agent-kit setup [--harness auto|codex|claude|opencode|cursor|generic] [--register]
+  answers-beyond-agent-kit setup [--harness auto|codex|claude|opencode|cursor|generic] [--register] [--dry-run]
   answers-beyond-agent-kit doctor [--check] [--json]
   answers-beyond-agent-kit print-config [--harness NAME]
   answers-beyond-agent-kit abec <command...>
@@ -64,11 +64,13 @@ function safeDoctor() {
     privateDir: process.env.ABEC_PRIVATE_DIR || path.join(os.homedir(), '.answers-beyond', 'private'),
   };
 }
-async function main(argv = process.argv.slice(2)) {
+async function main(argv = process.argv.slice(2), dependencies = {}) {
+  const log = dependencies.log || console.log;
+  const runRegistration = dependencies.registerMcp || registerMcp;
   const [command] = argv;
   const args = parse(argv);
-  if (!command || args.has('--help') || command === 'help') return console.log(HELP);
-  if (command === 'abec') return console.log(JSON.stringify(await runAbec(argv.slice(1)), null, 2));
+  if (!command || args.has('--help') || command === 'help') return log(HELP);
+  if (command === 'abec') return log(JSON.stringify(await runAbec(argv.slice(1)), null, 2));
   if (command === 'setup' || command === 'print-config') {
     const harness = detectHarness(args.value('--harness') || 'auto');
     const result = install({
@@ -79,8 +81,12 @@ async function main(argv = process.argv.slice(2)) {
       dryRun: command === 'print-config' || args.has('--dry-run'),
       skipRegister: !args.has('--register'),
     });
-    if (command === 'setup' && args.has('--register')) result.registration = registerMcp(result);
-    return console.log(JSON.stringify(result, null, 2));
+    if (command === 'setup' && args.has('--register')) {
+      result.registration = args.has('--dry-run')
+        ? { attempted: false, reason: 'dry-run' }
+        : runRegistration(result);
+    }
+    return log(JSON.stringify(result, null, 2));
   }
   if (command === 'doctor') {
     const result = safeDoctor();
@@ -93,8 +99,8 @@ async function main(argv = process.argv.slice(2)) {
         requestId: me.requestId,
       };
     }
-    if (args.has('--json')) return console.log(JSON.stringify(result));
-    return console.log(JSON.stringify(result, null, 2));
+    if (args.has('--json')) return log(JSON.stringify(result));
+    return log(JSON.stringify(result, null, 2));
   }
   throw new Error(`未知命令：${command}\n\n${HELP}`);
 }

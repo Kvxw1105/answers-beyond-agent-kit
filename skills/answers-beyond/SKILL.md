@@ -1,6 +1,6 @@
 ---
 name: answers-beyond
-description: Use when the user wants to connect an Agent to Answers Beyond, list or manage their own digital-entitlement products, turn natural language or source links into a product draft, create or update products, generate or import card codes, diagnose ABEC API errors, or asks about the 答案之外卡密站.
+description: Use when the user wants to connect an Agent to Answers Beyond, list or manage their own digital-entitlement products, process IMA knowledge-base approval screenshots with long purchase-card verification, detect reused card proofs, create or update products, generate or import card codes, diagnose ABEC API errors, or asks about the 答案之外卡密站.
 metadata:
   product: Answers Beyond
   api: https://ent.xince.work
@@ -41,6 +41,16 @@ Default new products to `draft`. Produce a version-1 product manifest and valida
 
 Raw card codes must stay in files beneath `ABEC_PRIVATE_DIR`. Do not print codes, paste them into chat, or put them directly in MCP tool input. Use `abec_generate_codes_preview` or `abec_import_codes_preview`; both return counts and local file paths rather than raw inventory. See [inventory security](references/inventory-security.md).
 
+## IMA 人工审核
+
+IMA 申请凭证是现有长卡密；服务端用哈希核验，不能把它改成六位码或重新导入库存。
+
+When the user sends an IMA application screenshot or copied text, first place the short-lived OCR/text evidence under `ABEC_PRIVATE_DIR` (one candidate per line is fine; surrounding OCR text is also accepted), then call `abec_match_reviews` with `{ codesFile: "..." }`. Never pass a raw `codes` array to the MCP tool. Extract only long purchase-card candidates containing both letters and digits. Ignore dates, phone numbers, order numbers, and the internal six-digit review code. Report only masked tails plus the server verdict.
+
+The server verifies the existing long card by secure hash; do not redesign card generation or import the proof as new inventory. Reads and matching may run immediately. Locking, approving, rejecting, marking abnormal, and unlocking are writes: call `abec_review_action_preview`, show the exact action, wait for explicit confirmation, then pass its fresh receipt to `abec_confirm_operation` and read the review queue back.
+
+IMA itself remains a manual GUI boundary. Only preview `approve` after the user says they already clicked approve in IMA. Never imply that this kit clicked IMA. See [IMA review workflow](references/review-workflow.md).
+
 ## Errors
 
 - `401`: Key missing, expired, malformed, or connected to the wrong API URL.
@@ -57,6 +67,7 @@ State one of these precisely: configured only; authenticated read verified; prev
 
 ## Learnings
 
+- 2026-09-15 v1.1.0: IMA applications carry the existing long purchase card, not the internal six-digit review code; hash-match the long card, mask outputs, and keep IMA approval manual.
 - 2026-09-13 v1.0.0: Separate the reusable Agent capability package from product-specific content. Install Skill/MCP/CLI once; let the Agent gather and validate each product's details later.
 - 2026-09-13 v1.0.0: Keep the public kit harness-neutral, while providing first-class paths for Codex, Claude Code, OpenCode, Cursor, and generic Agent Skills.
 - 2026-09-13 v1.0.0: A preview receipt is an authorization checkpoint, not a substitute for the user's explicit confirmation.
