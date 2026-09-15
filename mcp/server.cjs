@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const client = require('../lib/client.cjs');
 const { createPrivateFiles, generateCodes } = require('../agent/local-codes.cjs');
-const { normalizePurchaseCodesFromText, reviewActionPath, sanitizeReviewPayload } = require('../agent/reviews.cjs');
+const { addReviewMatchGuidance, normalizePurchaseCodesFromText, reviewActionPath, sanitizeReviewPayload } = require('../agent/reviews.cjs');
 const { version } = require('../package.json');
 
 const tools = [
@@ -55,7 +55,7 @@ function createMcp({ request = client.request, writeRequest = client.writeReques
         method: 'POST',
         body: JSON.stringify({ codes }),
       });
-      return sanitizeReviewPayload(result, codes);
+      return addReviewMatchGuidance(sanitizeReviewPayload(result, codes), process.env.ABEC_API_URL || client.DEFAULT_API_URL);
     }
     if (name === 'abec_review_action_preview') {
       const endpoint = reviewActionPath(args.reviewCode, args.action);

@@ -47,6 +47,8 @@ IMA 申请凭证是现有长卡密；服务端用哈希核验，不能把它改�
 
 When the user sends an IMA application screenshot or copied text, first place the short-lived OCR/text evidence under `ABEC_PRIVATE_DIR` (one candidate per line is fine; surrounding OCR text is also accepted), then call `abec_match_reviews` with `{ codesFile: "..." }`. Never pass a raw `codes` array to the MCP tool. Extract only long purchase-card candidates containing both letters and digits. Ignore dates, phone numbers, order numbers, and the internal six-digit review code. Report only masked tails plus the server verdict.
 
+If the verdict is `not_redeemed`, do not describe it as a missing API or failed match. Tell the operator that the card was found but no review exists because the buyer has not claimed it yet. Give the returned `redeemUrl`, ask the buyer to claim with the original purchase card, then run the match again. 不要重新导入该卡密，也不要让 Agent 代替买家认领。
+
 The server verifies the existing long card by secure hash; do not redesign card generation or import the proof as new inventory. Reads and matching may run immediately. Locking, approving, rejecting, marking abnormal, and unlocking are writes: call `abec_review_action_preview`, show the exact action, wait for explicit confirmation, then pass its fresh receipt to `abec_confirm_operation` and read the review queue back.
 
 IMA itself remains a manual GUI boundary. Only preview `approve` after the user says they already clicked approve in IMA. Never imply that this kit clicked IMA. See [IMA review workflow](references/review-workflow.md).
@@ -67,6 +69,7 @@ State one of these precisely: configured only; authenticated read verified; prev
 
 ## Learnings
 
+- 2026-09-16 v1.1.1: `not_redeemed` is a valid pre-review state, not an API failure. Return a buyer redemption step, forbid reimport/Agent-side claiming, and retry matching only after the buyer claims.
 - 2026-09-15 v1.1.0: IMA applications carry the existing long purchase card, not the internal six-digit review code; hash-match the long card, mask outputs, and keep IMA approval manual.
 - 2026-09-13 v1.0.0: Separate the reusable Agent capability package from product-specific content. Install Skill/MCP/CLI once; let the Agent gather and validate each product's details later.
 - 2026-09-13 v1.0.0: Keep the public kit harness-neutral, while providing first-class paths for Codex, Claude Code, OpenCode, Cursor, and generic Agent Skills.

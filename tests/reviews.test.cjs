@@ -11,6 +11,27 @@ test('review helper ignores OCR dates and phone numbers', () => {
   assert.deepEqual(extractPurchaseCodes('2026-09-14 13800138000 卡密 JX-QN2T6ZEYT5P8'), ['JX-QN2T6ZEYT5P8']);
 });
 
+test('review match guidance tells operators to wait for buyer redemption and never reimport the proof', () => {
+  const { addReviewMatchGuidance } = require('../agent/reviews.cjs');
+  const result = addReviewMatchGuidance({
+    data: [{
+      candidateTail: 'T5P8',
+      found: true,
+      verdict: 'not_redeemed',
+      product: { name: 'IMA 知识库年度版' },
+      review: null,
+    }],
+  }, 'https://ent.example');
+
+  assert.deepEqual(result.data[0].nextStep, {
+    action: 'buyer_redeem',
+    redeemUrl: 'https://ent.example/redeem',
+    retry: 'match_after_redeem',
+    message: '卡密已找到，但买家尚未在答案之外完成权益认领，所以还没有可锁定的审核记录。请让买家打开领取页，输入原购买卡密完成认领；完成后重新匹配。不要重新导入该卡密，也不要让 Agent 代替买家认领。',
+  });
+  assert.equal(result.data[0].operatorMessage, result.data[0].nextStep.message);
+});
+
 test('CLI matches purchase codes from a private file and redacts model-visible output', async () => {
   const privateRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'abec-review-'));
   const codeFile = path.join(privateRoot, 'ima-proof.txt');

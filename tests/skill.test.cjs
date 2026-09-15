@@ -10,7 +10,7 @@ const skillPath = path.join(__dirname, '..', 'skills', 'answers-beyond', 'SKILL.
 test('skill has standard frontmatter and AI-native operating contract', () => {
   const body = fs.readFileSync(skillPath, 'utf8');
   assert.match(body, /^---\r?\nname: answers-beyond\r?\ndescription:/);
-  for (const phrase of ['MCP', 'CLI', 'ABEC_API_KEY', 'whoami', '来源链接', '显式确认', 'confirmationToken', 'IMA', '长卡密', '哈希', 'abec_match_reviews', '## Learnings', '2026-09-15']) {
+  for (const phrase of ['MCP', 'CLI', 'ABEC_API_KEY', 'whoami', '来源链接', '显式确认', 'confirmationToken', 'IMA', '长卡密', '哈希', 'abec_match_reviews', '## Learnings', '2026-09-16', 'not_redeemed', '不要重新导入']) {
     assert.match(body, new RegExp(phrase));
   }
   assert.ok(body.split(/\r?\n/).length < 500);

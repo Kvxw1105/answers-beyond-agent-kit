@@ -14,6 +14,8 @@ test('README documents the complete member journey and authorization boundary', 
 
 test('Windows installer is pinned to the current public kit version', () => {
   const installer = fs.readFileSync(path.join(__dirname, '..', 'install.ps1'), 'utf8');
-  assert.match(installer, /answers-beyond-agent-kit#v1\.1\.0/g);
-  assert.doesNotMatch(installer, /answers-beyond-agent-kit#v1\.0\.0/);
+  assert.match(installer, /answers-beyond-agent-kit#v1\.1\.1/g);
+  assert.doesNotMatch(installer, /answers-beyond-agent-kit#v1\.1\.0/);
+  const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
+  assert.equal(pkg.version, '1.1.1');
 });
