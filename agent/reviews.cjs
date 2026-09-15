@@ -1,6 +1,8 @@
 'use strict';
 
 const REVIEW_ACTIONS = new Set(['lock', 'approve', 'reject', 'abnormal', 'unlock']);
+const DEFAULT_API_URL = 'https://ent.xince.work';
+const NOT_REDEEMED_MESSAGE = '卡密已找到，但买家尚未在答案之外完成权益认领，所以还没有可锁定的审核记录。请让买家打开领取页，输入原购买卡密完成认领；完成后重新匹配。不要重新导入该卡密，也不要让 Agent 代替买家认领。';
 
 function normalizePurchaseCode(value) {
   return String(value || '').trim().toUpperCase().replace(/\s+/g, '');
@@ -39,6 +41,23 @@ function sanitizeReviewPayload(value, purchaseCodes = []) {
   return purchaseCodes.reduce((text, code) => text.replaceAll(code, maskPurchaseCode(code)), value);
 }
 
+function addReviewMatchGuidance(value, apiUrl = DEFAULT_API_URL) {
+  const fallback = {
+    action: 'buyer_redeem',
+    redeemUrl: `${String(apiUrl || DEFAULT_API_URL).replace(/\/+$/, '')}/redeem`,
+    retry: 'match_after_redeem',
+    message: NOT_REDEEMED_MESSAGE,
+  };
+  const add = (item) => {
+    if (!item || typeof item !== 'object' || item.verdict !== 'not_redeemed') return item;
+    const nextStep = item.nextStep && typeof item.nextStep === 'object' ? item.nextStep : fallback;
+    return { ...item, nextStep, operatorMessage: typeof nextStep.message === 'string' ? nextStep.message : NOT_REDEEMED_MESSAGE };
+  };
+  if (Array.isArray(value)) return value.map(add);
+  if (value && typeof value === 'object' && Array.isArray(value.data)) return { ...value, data: value.data.map(add) };
+  return value;
+}
+
 function reviewActionPath(reviewCode, action) {
   const normalizedCode = String(reviewCode || '').replace(/\D/g, '');
   if (!/^\d{6}$/.test(normalizedCode)) throw new Error('审核动作必须使用服务端返回的六位审核码。');
@@ -48,6 +67,7 @@ function reviewActionPath(reviewCode, action) {
 
 module.exports = {
   REVIEW_ACTIONS,
+  addReviewMatchGuidance,
   extractPurchaseCodes,
   maskPurchaseCode,
   normalizePurchaseCode,

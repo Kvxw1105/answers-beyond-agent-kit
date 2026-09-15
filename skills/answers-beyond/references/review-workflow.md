@@ -17,7 +17,7 @@ Use this workflow when an IMA knowledge-base application contains a purchase car
 3. Call `abec_match_reviews` with `{ codesFile: "..." }`; the MCP tool intentionally rejects a raw `codes` array so the full proof does not enter tool arguments.
 4. Report each masked tail and one server verdict:
    - `actionable`: valid manual-review card with an unfinished claim.
-   - `not_redeemed`: card exists but the buyer has not claimed it in Answers Beyond.
+   - `not_redeemed`: card exists but the buyer has not claimed it in Answers Beyond. This is not an API failure and there is intentionally no six-digit review code yet. Return the `redeemUrl`, ask the buyer to claim with the original purchase card, and match again afterwards. Do not reimport the card or claim it on the buyer's behalf.
    - `duplicate`: the corresponding review was already completed; do not approve again.
    - `locked`: another operator is processing it.
    - `blocked`: refunded, revoked, rejected, abnormal, or not a manual-review product.

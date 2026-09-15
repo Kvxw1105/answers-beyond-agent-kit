@@ -15,14 +15,14 @@
 
 把下面整段发给你的 Agent：
 
-> 请运行 `npx --yes github:Kvxw1105/answers-beyond-agent-kit#v1.1.0 setup --harness auto --register`，不要让我在聊天中粘贴 API Key。安装后引导我把后台生成的 Key 放进本机 `ABEC_API_KEY` 或你的 secret store，然后运行 `npx --yes github:Kvxw1105/answers-beyond-agent-kit#v1.1.0 doctor --check`。读取已安装的 `answers-beyond` Skill，再根据我的自然语言和来源链接，引导我创建商品草稿。任何写操作必须先 preview，展示影响并等待我的显式确认。
+> 请运行 `npx --yes github:Kvxw1105/answers-beyond-agent-kit#v1.1.1 setup --harness auto --register`，不要让我在聊天中粘贴 API Key。安装后引导我把后台生成的 Key 放进本机 `ABEC_API_KEY` 或你的 secret store，然后运行 `npx --yes github:Kvxw1105/answers-beyond-agent-kit#v1.1.1 doctor --check`。读取已安装的 `answers-beyond` Skill，再根据我的自然语言和来源链接，引导我创建商品草稿。任何写操作必须先 preview，展示影响并等待我的显式确认。
 
 Node.js 需要 20 或更高版本。
 
 ## 自己安装
 
 ```powershell
-npx --yes github:Kvxw1105/answers-beyond-agent-kit#v1.1.0 setup --harness auto --register
+npx --yes github:Kvxw1105/answers-beyond-agent-kit#v1.1.1 setup --harness auto --register
 ```
 
 可选 harness：`codex`、`claude`、`opencode`、`cursor`、`generic`。安装器会尝试用可安全直调的原生 Harness CLI 注册 MCP；若当前平台只有脚本包装器，或 Harness 不支持自动注册，则生成一个不含 Key 的 MCP 配置文件并显示导入路径。
@@ -43,7 +43,7 @@ finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }
 重启 Agent 后做真实只读检查：
 
 ```powershell
-npx --yes github:Kvxw1105/answers-beyond-agent-kit#v1.1.0 doctor --check
+npx --yes github:Kvxw1105/answers-beyond-agent-kit#v1.1.1 doctor --check
 ```
 
 只有返回成员 `role`、`scopes` 和 `requestId`，才算“已连接”。只生成了配置文件不算连接成功。
@@ -69,6 +69,8 @@ IMA 知识库申请里附的是“答案之外”现有的长卡密，不是内�
 3. 只展示脱敏尾号，不在工具返回中回显完整卡密；
 4. 经你显式确认后锁定记录；
 5. 等你在 IMA GUI 人工同意后，再经第二次显式确认把本站权益标记完成并回读验证。
+
+如果匹配结果是 `not_redeemed`，它表示“卡密真实且已找到，但买家还没有在 Answers Beyond 完成权益认领”，不是接口故障。Agent 会给出领取页和明确下一步：让买家用原购买卡密完成认领，随后重新匹配；不要重新导入该卡密，也不要让 Agent 代替买家认领。
 
 这套 Kit 不会自动点击 IMA 的“同意”。原始截图和工具参数是否保留，取决于你使用的 Agent / Harness 历史设置，因此不要把整个过程描述成“完全无日志”。
 

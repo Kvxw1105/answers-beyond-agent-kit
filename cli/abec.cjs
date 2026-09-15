@@ -3,10 +3,10 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { request, writeRequest } = require('../lib/client.cjs');
+const { DEFAULT_API_URL, request, writeRequest } = require('../lib/client.cjs');
 const { toProductInput } = require('../agent/product-manifest.cjs');
 const { createPrivateFiles, generateCodes } = require('../agent/local-codes.cjs');
-const { normalizePurchaseCodesFromText, reviewActionPath, sanitizeReviewPayload } = require('../agent/reviews.cjs');
+const { addReviewMatchGuidance, normalizePurchaseCodesFromText, reviewActionPath, sanitizeReviewPayload } = require('../agent/reviews.cjs');
 
 function parser(argv) {
   return {
@@ -38,7 +38,7 @@ async function run(argv = process.argv.slice(2), dependencies = { request, write
       method: 'POST',
       body: JSON.stringify({ codes }),
     });
-    return sanitizeReviewPayload(result, codes);
+    return addReviewMatchGuidance(sanitizeReviewPayload(result, codes), process.env.ABEC_API_URL || DEFAULT_API_URL);
   }
 
   let endpoint;

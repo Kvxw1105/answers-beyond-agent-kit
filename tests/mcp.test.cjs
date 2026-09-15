@@ -43,6 +43,23 @@ test('MCP matches purchase-code proofs without echoing raw codes or claim tokens
   assert.match(JSON.stringify(result), /482731/);
 });
 
+test('MCP makes an unredeemed match immediately actionable for the human operator', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'abec-review-unredeemed-'));
+  const proofFile = path.join(root, 'ima-proof.txt');
+  fs.writeFileSync(proofFile, 'JX-QN2T6ZEYT5P8\n', { mode: 0o600 });
+  const { createMcp } = require('../mcp/server.cjs');
+  const mcp = createMcp({
+    privateRoot: root,
+    request: async () => ({ data: [{ candidateTail: 'T5P8', found: true, verdict: 'not_redeemed', review: null }] }),
+    writeRequest: async () => ({}),
+  });
+
+  const result = await mcp.call('abec_match_reviews', { codesFile: proofFile });
+  assert.equal(result.data[0].nextStep.action, 'buyer_redeem');
+  assert.match(result.data[0].operatorMessage, /完成认领.*重新匹配/);
+  assert.match(result.data[0].operatorMessage, /不要重新导入/);
+});
+
 test('MCP review writes produce an exact confirmable receipt', async () => {
   let captured;
   const { createMcp } = require('../mcp/server.cjs');
