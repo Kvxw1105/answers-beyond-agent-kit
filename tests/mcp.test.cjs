@@ -10,9 +10,50 @@ test('MCP exposes the complete member tool surface', () => {
   const { tools } = require('../mcp/server.cjs');
   assert.deepEqual(tools.map((tool) => tool.name), [
     'abec_whoami', 'abec_list_products', 'abec_get_product', 'abec_list_codes',
+    'abec_list_reviews', 'abec_match_reviews', 'abec_review_action_preview',
     'abec_create_product_preview', 'abec_update_product_preview',
     'abec_generate_codes_preview', 'abec_import_codes_preview', 'abec_confirm_operation',
   ]);
+});
+
+test('MCP matches purchase-code proofs without echoing raw codes or claim tokens', async () => {
+  const purchaseCode = 'JX-QN2T6ZEYT5P8';
+  let captured;
+  const { createMcp } = require('../mcp/server.cjs');
+  const mcp = createMcp({
+    request: async (...args) => {
+      captured = args;
+      return { data: [{ candidateTail: 'T5P8', echoed: purchaseCode, review: { reviewCode: '482731', claimToken: 'private-claim-token' } }] };
+    },
+    writeRequest: async () => ({}),
+  });
+
+  const result = await mcp.call('abec_match_reviews', { codes: [purchaseCode] });
+  assert.equal(captured[0], '/api/v1/reviews/match');
+  assert.deepEqual(JSON.parse(captured[1].body), { codes: [purchaseCode] });
+  assert.doesNotMatch(JSON.stringify(result), new RegExp(purchaseCode));
+  assert.doesNotMatch(JSON.stringify(result), /private-claim-token/);
+  assert.match(JSON.stringify(result), /482731/);
+});
+
+test('MCP review writes produce an exact confirmable receipt', async () => {
+  let captured;
+  const { createMcp } = require('../mcp/server.cjs');
+  const mcp = createMcp({
+    request: async () => ({}),
+    writeRequest: async (...args) => {
+      captured = args;
+      return { preview: true, confirmationToken: 'token-1', idempotencyKey: 'idem-1' };
+    },
+  });
+
+  const result = await mcp.call('abec_review_action_preview', { reviewCode: '482731', action: 'lock' });
+  assert.equal(captured[0], '/api/v1/reviews/482731/lock');
+  assert.equal(captured[2].preview, true);
+  assert.deepEqual(result.confirmationInput, {
+    path: '/api/v1/reviews/482731/lock', method: 'POST', input: {}, confirmationToken: 'token-1', idempotencyKey: 'idem-1',
+  });
+  await assert.rejects(() => mcp.call('abec_review_action_preview', { reviewCode: 'bad', action: 'approve' }), /六位审核码/);
 });
 
 test('MCP generates inventory locally and returns no raw codes', async () => {

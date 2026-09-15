@@ -5,7 +5,7 @@
 这不是某个商品的配置包。它是一次安装、长期复用的 AI 能力层：
 
 - **Skill**：让 Agent 理解商品、卡密、安全确认和故障处理规则。
-- **MCP**：提供结构化的身份、商品、卡密、预览与确认工具。
+- **MCP**：提供结构化的身份、商品、卡密、IMA 人工审核、预览与确认工具。
 - **CLI**：在没有 MCP 的环境中完成相同操作。
 - **Manifest**：把自然语言和来源链接整理成可审查的商品配置。
 
@@ -15,14 +15,14 @@
 
 把下面整段发给你的 Agent：
 
-> 请运行 `npx --yes github:Kvxw1105/answers-beyond-agent-kit#v1.0.0 setup --harness auto --register`，不要让我在聊天中粘贴 API Key。安装后引导我把后台生成的 Key 放进本机 `ABEC_API_KEY` 或你的 secret store，然后运行 `npx --yes github:Kvxw1105/answers-beyond-agent-kit#v1.0.0 doctor --check`。读取已安装的 `answers-beyond` Skill，再根据我的自然语言和来源链接，引导我创建商品草稿。任何写操作必须先 preview，展示影响并等待我的显式确认。
+> 请运行 `npx --yes github:Kvxw1105/answers-beyond-agent-kit#v1.1.0 setup --harness auto --register`，不要让我在聊天中粘贴 API Key。安装后引导我把后台生成的 Key 放进本机 `ABEC_API_KEY` 或你的 secret store，然后运行 `npx --yes github:Kvxw1105/answers-beyond-agent-kit#v1.1.0 doctor --check`。读取已安装的 `answers-beyond` Skill，再根据我的自然语言和来源链接，引导我创建商品草稿。任何写操作必须先 preview，展示影响并等待我的显式确认。
 
 Node.js 需要 20 或更高版本。
 
 ## 自己安装
 
 ```powershell
-npx --yes github:Kvxw1105/answers-beyond-agent-kit#v1.0.0 setup --harness auto --register
+npx --yes github:Kvxw1105/answers-beyond-agent-kit#v1.1.0 setup --harness auto --register
 ```
 
 可选 harness：`codex`、`claude`、`opencode`、`cursor`、`generic`。安装器会尝试用可安全直调的原生 Harness CLI 注册 MCP；若当前平台只有脚本包装器，或 Harness 不支持自动注册，则生成一个不含 Key 的 MCP 配置文件并显示导入路径。
@@ -43,7 +43,7 @@ finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }
 重启 Agent 后做真实只读检查：
 
 ```powershell
-npx --yes github:Kvxw1105/answers-beyond-agent-kit#v1.0.0 doctor --check
+npx --yes github:Kvxw1105/answers-beyond-agent-kit#v1.1.0 doctor --check
 ```
 
 只有返回成员 `role`、`scopes` 和 `requestId`，才算“已连接”。只生成了配置文件不算连接成功。
@@ -60,6 +60,18 @@ npx --yes github:Kvxw1105/answers-beyond-agent-kit#v1.0.0 doctor --check
 
 卡密原文只允许保存在 `ABEC_PRIVATE_DIR`，MCP 返回路径和数量，不把完整卡密带进模型上下文。
 
+## IMA 长卡密人工审核
+
+IMA 知识库申请里附的是“答案之外”现有的长卡密，不是内部六位审核码。把截图发给已配置的 Agent 后，它可以：
+
+1. 从截图识别长卡密，过滤日期、手机号和订单号；
+2. 调用 `abec_match_reviews`，由服务端按哈希验真并判断未兑换、可处理、重复、已锁定或异常；
+3. 只展示脱敏尾号，不在工具返回中回显完整卡密；
+4. 经你显式确认后锁定记录；
+5. 等你在 IMA GUI 人工同意后，再经第二次显式确认把本站权益标记完成并回读验证。
+
+这套 Kit 不会自动点击 IMA 的“同意”。原始截图和工具参数是否保留，取决于你使用的 Agent / Harness 历史设置，因此不要把整个过程描述成“完全无日志”。
+
 ## CLI 例子
 
 ```powershell
@@ -68,6 +80,8 @@ answers-beyond-agent-kit abec products list
 answers-beyond-agent-kit abec products create --manifest .\product.json --receipt .\.private\create.receipt.json
 # 审查 preview 后再执行：
 answers-beyond-agent-kit abec products create --manifest .\product.json --receipt .\.private\create.receipt.json --confirm
+# IMA 申请卡密从 ABEC_PRIVATE_DIR 内的临时文件读取，不放进命令历史：
+answers-beyond-agent-kit abec reviews match --file "$env:ABEC_PRIVATE_DIR\ima-proof.txt"
 ```
 
 商品模板见 `examples/product-manifest.example.json`。`401/403/404/409` 的诊断顺序见 Skill 的 `references/troubleshooting.md`。
