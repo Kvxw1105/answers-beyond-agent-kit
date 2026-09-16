@@ -59,6 +59,12 @@ function addReviewMatchGuidance(value, apiUrl = DEFAULT_API_URL) {
 }
 
 function reviewActionPath(reviewCode, action) {
+  if (typeof reviewCode === 'object' && reviewCode !== null) {
+    const reviewId = String(reviewCode.reviewId || reviewCode.id || '').trim();
+    if (!reviewId) throw new Error('审核动作必须使用服务端返回的 reviewId 或六位审核码。');
+    if (!REVIEW_ACTIONS.has(action)) throw new Error(`未知审核动作：${action}`);
+    return `/api/v1/reviews/cases/${encodeURIComponent(reviewId)}/${action}`;
+  }
   const normalizedCode = String(reviewCode || '').replace(/\D/g, '');
   if (!/^\d{6}$/.test(normalizedCode)) throw new Error('审核动作必须使用服务端返回的六位审核码。');
   if (!REVIEW_ACTIONS.has(action)) throw new Error(`未知审核动作：${action}`);

@@ -64,7 +64,7 @@ async function run(argv = process.argv.slice(2), dependencies = { request, write
     } else codes = files.read(file);
     input = { productId: args.value('--product'), codes, ...(args.value('--batch-name') ? { batchName: args.value('--batch-name') } : {}) };
   } else if (command === 'reviews' && resource === 'action' && id && argv[3]) {
-    endpoint = reviewActionPath(id, argv[3]);
+    endpoint = reviewActionPath(args.value('--review-id') ? { reviewId: args.value('--review-id') } : id, argv[3]);
     input = {};
   } else {
     throw new Error('用法：abec whoami | products list|get ID|create|update | codes list|generate|import | reviews list|match --file FILE|action REVIEW_CODE ACTION；写操作需 --receipt FILE，确认时再加 --confirm。');

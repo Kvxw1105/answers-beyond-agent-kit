@@ -45,7 +45,7 @@ Raw card codes must stay in files beneath `ABEC_PRIVATE_DIR`. Do not print codes
 
 IMA 申请凭证是现有长卡密；服务端用哈希核验，不能把它改成六位码或重新导入库存。
 
-When the user sends an IMA application screenshot or copied text, first place the short-lived OCR/text evidence under `ABEC_PRIVATE_DIR` (one candidate per line is fine; surrounding OCR text is also accepted), then call `abec_match_reviews` with `{ codesFile: "..." }`. Never pass a raw `codes` array to the MCP tool. Extract only long purchase-card candidates containing both letters and digits. Ignore dates, phone numbers, order numbers, and the internal six-digit review code. Report only masked tails plus the server verdict.
+When the user sends an IMA application screenshot or copied text, first place the short-lived OCR/text evidence under `ABEC_PRIVATE_DIR` (one candidate per line is fine; surrounding OCR text is also accepted), then call `abec_match_reviews` with `{ codesFile: "..." }`. Never pass a raw `codes` array to the MCP tool. Extract only long purchase-card candidates containing both letters and digits. Ignore dates, phone numbers, order numbers, and the internal six-digit review code. For `external_review` products, an unused card is actionable and does not need `/redeem`; for legacy `abec_claim` products, `not_redeemed` still means the buyer must claim first. Report only masked tails plus the server verdict.
 
 If the verdict is `not_redeemed`, do not describe it as a missing API or failed match. Tell the operator that the card was found but no review exists because the buyer has not claimed it yet. Give the returned `redeemUrl`, ask the buyer to claim with the original purchase card, then run the match again. 不要重新导入该卡密，也不要让 Agent 代替买家认领。
 

@@ -80,6 +80,18 @@ test('MCP review writes produce an exact confirmable receipt', async () => {
   await assert.rejects(() => mcp.call('abec_review_action_preview', { reviewCode: 'bad', action: 'approve' }), /六位审核码/);
 });
 
+test('MCP review writes accept an external reviewId', async () => {
+  let endpoint;
+  const { createMcp } = require('../mcp/server.cjs');
+  const mcp = createMcp({
+    request: async () => ({}),
+    writeRequest: async (path) => { endpoint = path; return { confirmationToken: 'token-id', idempotencyKey: 'idem-id' }; },
+  });
+  const result = await mcp.call('abec_review_action_preview', { reviewId: 'case-123', action: 'lock' });
+  assert.equal(endpoint, '/api/v1/reviews/cases/case-123/lock');
+  assert.equal(result.review.reviewId, 'case-123');
+});
+
 test('MCP generates inventory locally and returns no raw codes', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'abec-mcp-'));
   let sentBody;

@@ -16,7 +16,7 @@ const tools = [
   { name: 'abec_list_codes', description: '读取当前成员有权查看的脱敏卡密列表。', inputSchema: { type: 'object', properties: { productId: { type: 'string' } } } },
   { name: 'abec_list_reviews', description: '读取当前成员有权处理的人工审核队列；不返回完整购买卡密或 claim token。', inputSchema: { type: 'object', properties: { limit: { type: 'integer', minimum: 1, maximum: 100 } } } },
   { name: 'abec_match_reviews', description: '从 ABEC_PRIVATE_DIR 内的 IMA 申请文本/卡密文件读取长卡密，提交服务端做哈希验真与防重放；不要把完整卡密放进 MCP 参数或回复。', inputSchema: { type: 'object', properties: { codesFile: { type: 'string', description: 'ABEC_PRIVATE_DIR 内的短期私有文本文件；可包含截图 OCR 文字或每行一个卡密。' } }, required: ['codesFile'], additionalProperties: false } },
-  { name: 'abec_review_action_preview', description: '预览锁定、通过、拒绝、异常或解锁审核记录；只生成 receipt，不执行写入。', inputSchema: { type: 'object', properties: { reviewCode: { type: 'string', pattern: '^\\d{6}$' }, action: { type: 'string', enum: ['lock', 'approve', 'reject', 'abnormal', 'unlock'] } }, required: ['reviewCode', 'action'] } },
+  { name: 'abec_review_action_preview', description: '预览锁定、通过、拒绝、异常或解锁审核记录；外部审核使用 reviewId，历史记录可继续使用六位 reviewCode。', inputSchema: { type: 'object', properties: { reviewId: { type: 'string' }, reviewCode: { type: 'string', pattern: '^\\d{6}$' }, action: { type: 'string', enum: ['lock', 'approve', 'reject', 'abnormal', 'unlock'] } }, required: ['action'], anyOf: [{ required: ['reviewId'] }, { required: ['reviewCode'] }] } },
   { name: 'abec_create_product_preview', description: '预览创建商品，不写入。', inputSchema: { type: 'object', properties: { input: { type: 'object' } }, required: ['input'] } },
   { name: 'abec_update_product_preview', description: '预览更新商品，不写入。', inputSchema: { type: 'object', properties: { id: { type: 'string' }, input: { type: 'object' } }, required: ['id', 'input'] } },
   { name: 'abec_generate_codes_preview', description: '在 ABEC_PRIVATE_DIR 内生成卡密文件并预览导入；只返回路径和数量。', inputSchema: { type: 'object', properties: { productId: { type: 'string' }, outputFile: { type: 'string' }, count: { type: 'integer', minimum: 1, maximum: 1000 }, length: { type: 'integer', minimum: 8, maximum: 32 }, prefix: { type: 'string' }, batchName: { type: 'string' }, excludeAmbiguous: { type: 'boolean' } }, required: ['productId', 'outputFile'] } },
@@ -58,11 +58,12 @@ function createMcp({ request = client.request, writeRequest = client.writeReques
       return addReviewMatchGuidance(sanitizeReviewPayload(result, codes), process.env.ABEC_API_URL || client.DEFAULT_API_URL);
     }
     if (name === 'abec_review_action_preview') {
-      const endpoint = reviewActionPath(args.reviewCode, args.action);
+      const reviewRef = args.reviewId ? { reviewId: args.reviewId } : args.reviewCode;
+      const endpoint = reviewActionPath(reviewRef, args.action);
       const preview = await writeRequest(endpoint, {}, { preview: true });
       return {
         ...preview,
-        review: { reviewCode: String(args.reviewCode), action: args.action },
+        review: { ...(args.reviewId ? { reviewId: String(args.reviewId) } : { reviewCode: String(args.reviewCode) }), action: args.action },
         confirmationInput: {
           path: endpoint,
           method: 'POST',
