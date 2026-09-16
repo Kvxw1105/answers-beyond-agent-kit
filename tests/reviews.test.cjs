@@ -82,3 +82,37 @@ test('review proof files may contain OCR text around the long purchase code', as
     else process.env.ABEC_PRIVATE_DIR = previous;
   }
 });
+
+test('CLI review action accepts an external review id and keeps the legacy review code form', async () => {
+  const { run } = require('../cli/abec.cjs');
+  const privateRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'abec-review-action-'));
+  const captured = [];
+  const writeRequest = async (endpoint, body, options) => {
+    captured.push({ endpoint, options });
+    return { confirmationToken: 'token-only-in-test', idempotencyKey: 'key-only-in-test' };
+  };
+
+  const externalReceipt = path.join(privateRoot, 'external.receipt.json');
+  const external = await run(['reviews', 'action', '--review-id', 'case-123', 'lock', '--receipt', externalReceipt], {
+    request: async () => ({}),
+    writeRequest,
+  });
+  assert.equal(captured[0].endpoint, '/api/v1/reviews/cases/case-123/lock');
+  assert.equal(captured[0].options.preview, true);
+  assert.equal(external.preview, true);
+
+  const legacyReceipt = path.join(privateRoot, 'legacy.receipt.json');
+  await run(['reviews', 'action', '482731', 'lock', '--receipt', legacyReceipt], {
+    request: async () => ({}),
+    writeRequest,
+  });
+  assert.equal(captured[1].endpoint, '/api/v1/reviews/482731/lock');
+
+  await assert.rejects(
+    () => run(['reviews', 'action', '--review-id', 'case-123', '--receipt', path.join(privateRoot, 'missing.receipt.json')], {
+      request: async () => ({}),
+      writeRequest,
+    }),
+    /用法：abec reviews action/,
+  );
+});

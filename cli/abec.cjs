@@ -63,8 +63,18 @@ async function run(argv = process.argv.slice(2), dependencies = { request, write
       fs.writeFileSync(file, `${codes.join('\n')}\n`, { encoding: 'utf8', mode: 0o600, flag: 'wx' });
     } else codes = files.read(file);
     input = { productId: args.value('--product'), codes, ...(args.value('--batch-name') ? { batchName: args.value('--batch-name') } : {}) };
-  } else if (command === 'reviews' && resource === 'action' && id && argv[3]) {
-    endpoint = reviewActionPath(args.value('--review-id') ? { reviewId: args.value('--review-id') } : id, argv[3]);
+  } else if (command === 'reviews' && resource === 'action') {
+    const positional = [];
+    for (let index = 2; index < argv.length; index += 1) {
+      const token = argv[index];
+      if (token === '--review-id' || token === '--receipt') { index += 1; continue; }
+      if (token.startsWith('--')) continue;
+      positional.push(token);
+    }
+    const reviewId = args.value('--review-id');
+    const action = reviewId ? positional[0] : positional[1];
+    if (!action) throw new Error('用法：abec reviews action REVIEW_CODE ACTION 或 abec reviews action --review-id REVIEW_ID ACTION。');
+    endpoint = reviewActionPath(reviewId ? { reviewId } : positional[0], action);
     input = {};
   } else {
     throw new Error('用法：abec whoami | products list|get ID|create|update | codes list|generate|import | reviews list|match --file FILE|action REVIEW_CODE ACTION；写操作需 --receipt FILE，确认时再加 --confirm。');

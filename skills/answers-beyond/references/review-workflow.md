@@ -16,13 +16,13 @@ Use this workflow when an IMA knowledge-base application contains a purchase car
 2. Inspect the screenshot or copied text and write the short-lived evidence under `ABEC_PRIVATE_DIR`. Candidates may be one per line, or the file may contain surrounding OCR text. Extract candidates that contain both letters and digits. Ignore dates, phone numbers, prices, order numbers, and six-digit internal review codes.
 3. Call `abec_match_reviews` with `{ codesFile: "..." }`; the MCP tool intentionally rejects a raw `codes` array so the full proof does not enter tool arguments.
 4. Report each masked tail and one server verdict:
-   - `actionable`: valid manual-review card with an unfinished claim.
-   - `not_redeemed`: card exists but the buyer has not claimed it in Answers Beyond. This is not an API failure and there is intentionally no six-digit review code yet. Return the `redeemUrl`, ask the buyer to claim with the original purchase card, and match again afterwards. Do not reimport the card or claim it on the buyer's behalf.
+   - `actionable`: valid manual-review card that can enter review now. On `external_review` products (the default) the review object carries a `reviewId`; on legacy `abec_claim` products it carries a six-digit `reviewCode`.
+   - `not_redeemed`: only for products explicitly configured as `abec_claim`. The card exists but the buyer has not claimed it in Answers Beyond. This is not an API failure and there is intentionally no six-digit review code yet. Return the `redeemUrl`, ask the buyer to claim with the original purchase card, and match again afterwards. Do not reimport the card or claim it on the buyer's behalf.
    - `duplicate`: the corresponding review was already completed; do not approve again.
    - `locked`: another operator is processing it.
    - `blocked`: refunded, revoked, rejected, abnormal, or not a manual-review product.
    - `not_found`: no accessible card matched.
-5. For `actionable`, call `abec_review_action_preview` with `lock`. Show the masked tail, product, action, and fresh receipt impact. Wait for explicit confirmation before `abec_confirm_operation`.
+5. For `actionable`, call `abec_review_action_preview` with `lock`. Pass `reviewId` when the server returned one; pass `reviewCode` only for legacy `abec_claim` records. Show the masked tail, product, action, and fresh receipt impact. Wait for explicit confirmation before `abec_confirm_operation`.
 6. Tell the human to finish the matching IMA application in the IMA GUI.
 7. Only after the human says IMA was approved, preview `approve`, wait for explicit confirmation, execute the exact receipt, then call `abec_list_reviews` to verify the durable `duplicate` / completed state.
 
@@ -37,4 +37,11 @@ answers-beyond-agent-kit abec reviews match --file "$env:ABEC_PRIVATE_DIR\ima-pr
 answers-beyond-agent-kit abec reviews action 482731 lock --receipt "$env:ABEC_PRIVATE_DIR\lock.receipt.json"
 # after human confirmation
 answers-beyond-agent-kit abec reviews action 482731 lock --receipt "$env:ABEC_PRIVATE_DIR\lock.receipt.json" --confirm
+```
+
+For an `external_review` match, use the returned review id instead of the six-digit code:
+
+```powershell
+answers-beyond-agent-kit abec reviews action --review-id "<reviewId>" lock --receipt "$env:ABEC_PRIVATE_DIR\lock.receipt.json"
+answers-beyond-agent-kit abec reviews action --review-id "<reviewId>" lock --receipt "$env:ABEC_PRIVATE_DIR\lock.receipt.json" --confirm
 ```

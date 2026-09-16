@@ -45,7 +45,9 @@ Raw card codes must stay in files beneath `ABEC_PRIVATE_DIR`. Do not print codes
 
 IMA 申请凭证是现有长卡密；服务端用哈希核验，不能把它改成六位码或重新导入库存。
 
-When the user sends an IMA application screenshot or copied text, first place the short-lived OCR/text evidence under `ABEC_PRIVATE_DIR` (one candidate per line is fine; surrounding OCR text is also accepted), then call `abec_match_reviews` with `{ codesFile: "..." }`. Never pass a raw `codes` array to the MCP tool. Extract only long purchase-card candidates containing both letters and digits. Ignore dates, phone numbers, order numbers, and the internal six-digit review code. For `external_review` products, an unused card is actionable and does not need `/redeem`; for legacy `abec_claim` products, `not_redeemed` still means the buyer must claim first. Report only masked tails plus the server verdict.
+When the user sends an IMA application screenshot or copied text, first place the short-lived OCR/text evidence under `ABEC_PRIVATE_DIR` (one candidate per line is fine; surrounding OCR text is also accepted), then call `abec_match_reviews` with `{ codesFile: "..." }`. Never pass a raw `codes` array to the MCP tool. Extract only long purchase-card candidates containing both letters and digits. Ignore dates, phone numbers, order numbers, and the internal six-digit review code. Manual-review products default to `external_review`: an unused card is directly actionable and does not need `/redeem`. Only products explicitly configured as `abec_claim` still return `not_redeemed`. Report only masked tails plus the server verdict.
+
+For an `external_review` match, the server returns a `reviewId` instead of a six-digit `reviewCode`. Pass that `reviewId` to `abec_review_action_preview`; the six-digit code only exists for legacy `abec_claim` records. Never invent a review id and never fall back to the purchase card as the action target.
 
 If the verdict is `not_redeemed`, do not describe it as a missing API or failed match. Tell the operator that the card was found but no review exists because the buyer has not claimed it yet. Give the returned `redeemUrl`, ask the buyer to claim with the original purchase card, then run the match again. 不要重新导入该卡密，也不要让 Agent 代替买家认领。
 
@@ -69,6 +71,7 @@ State one of these precisely: configured only; authenticated read verified; prev
 
 ## Learnings
 
+- 2026-09-16 v1.2.0: Manual-review products default to `external_review`, so an unclaimed card is directly actionable and the server returns a `reviewId` instead of a six-digit review code. Pass `reviewId` to write actions; only explicitly configured `abec_claim` products still require the buyer to redeem first.
 - 2026-09-16 v1.1.1: `not_redeemed` is a valid pre-review state, not an API failure. Return a buyer redemption step, forbid reimport/Agent-side claiming, and retry matching only after the buyer claims.
 - 2026-09-15 v1.1.0: IMA applications carry the existing long purchase card, not the internal six-digit review code; hash-match the long card, mask outputs, and keep IMA approval manual.
 - 2026-09-13 v1.0.0: Separate the reusable Agent capability package from product-specific content. Install Skill/MCP/CLI once; let the Agent gather and validate each product's details later.
